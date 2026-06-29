@@ -10,6 +10,7 @@
     CONTROL_NUMBER: 'att_tracker_control',
     STUDENTS: 'att_tracker_students',
     ATTENDANCE: 'att_tracker_attendance',
+    DASHBOARD_FILTERS: 'att_tracker_dash_filters',
   };
 
   // ─── State ─────────────────────────────────────────────────────
@@ -29,6 +30,7 @@
   // ─── Init ──────────────────────────────────────────────────────
   function init() {
     loadState();
+    restoreDashboardFilters();
     setupEventListeners();
     setupScreens();
   }
@@ -79,10 +81,35 @@
     }
   }
 
+  function saveDashboardFilters() {
+    try {
+      const filters = {
+        filterClass: $('#dashboard-filter-class')?.value || 'all',
+        dateFrom: $('#trend-date-from')?.value || '',
+        dateTo: $('#trend-date-to')?.value || '',
+        activePeriod: parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10),
+      };
+      localStorage.setItem(STORAGE_KEYS.DASHBOARD_FILTERS, JSON.stringify(filters));
+    } catch (e) {
+      // Silently fail — filters are non-critical
+    }
+  }
+
+  function loadDashboardFilters() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.DASHBOARD_FILTERS);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
   function resetAllData() {
     localStorage.removeItem(STORAGE_KEYS.CONTROL_NUMBER);
     localStorage.removeItem(STORAGE_KEYS.STUDENTS);
     localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
+    localStorage.removeItem(STORAGE_KEYS.DASHBOARD_FILTERS);
     state = {
       controlNumber: null,
       students: [],
@@ -165,11 +192,12 @@
         $('#trend-date-from').value = '';
         $('#trend-date-to').value = '';
         renderTrendsChart();
+        saveDashboardFilters();
       });
     });
-    $('#dashboard-filter-class').addEventListener('change', refreshDashboard);
-    $('#trend-date-from').addEventListener('change', renderTrendsChart);
-    $('#trend-date-to').addEventListener('change', renderTrendsChart);
+    $('#dashboard-filter-class').addEventListener('change', () => { refreshDashboard(); saveDashboardFilters(); });
+    $('#trend-date-from').addEventListener('change', () => { renderTrendsChart(); saveDashboardFilters(); });
+    $('#trend-date-to').addEventListener('change', () => { renderTrendsChart(); saveDashboardFilters(); });
     $('#dash-manage-students').addEventListener('click', () => {
       showPage('students');
       renderStudentList();
@@ -351,6 +379,7 @@
     });
     const sortedClasses = Array.from(classSet).sort();
     const filterSelect = $('#dashboard-filter-class');
+    // Only restore saved filter on the first load (not preserved by rebuilding)
     const currentFilter = filterSelect.value;
     filterSelect.innerHTML = '<option value="all">All Sections</option>';
     sortedClasses.forEach(cls => {
@@ -509,6 +538,13 @@
       totalLate += counts.late;
       totalExcused += counts.excused;
 
+      // Compute per-day attendance rate
+      const dayTotal = counts.present + counts.absent + counts.late + counts.excused;
+      const dayRate = dayTotal > 0 ? ((counts.present + counts.late + counts.excused) / dayTotal) * 100 : 0;
+      let rateColor = 'var(--danger)';
+      if (dayRate >= 90) rateColor = 'var(--success)';
+      else if (dayRate >= 75) rateColor = 'var(--warning)';
+
       const dayLabel = formatShortDate(dateStr);
 
       // Build bar segments
@@ -525,7 +561,7 @@
         <div class="trend-row" style="animation: slideUp .25s ease ${idx * 30}ms both">
           <span class="trend-date-label">${escapeHtml(dayLabel)}</span>
           <div class="trend-bar">${barHtml}</div>
-          <span class="trend-bar-count">${total}</span>
+          <span class="trend-bar-count" style="min-width:52px;">${total} <span class="trend-rate-pct" style="color:${rateColor}">${dayRate.toFixed(0)}%</span></span>
         </div>`;
     });
 
@@ -742,6 +778,21 @@
     resetAttendanceChanges();
     showPage('attendance');
     renderAttendanceList();
+  }
+
+  function restoreDashboardFilters() {
+    const filters = loadDashboardFilters();
+    if (!filters) return;
+    const filterSelect = $('#dashboard-filter-class');
+    if (filterSelect) filterSelect.value = filters.filterClass || 'all';
+    const dateFrom = $('#trend-date-from');
+    const dateTo = $('#trend-date-to');
+    if (dateFrom) dateFrom.value = filters.dateFrom || '';
+    if (dateTo) dateTo.value = filters.dateTo || '';
+    const period = filters.activePeriod || 7;
+    document.querySelectorAll('.trend-period-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.period) === period);
+    });
   }
 
   function resetAttendanceChanges() {
@@ -1029,9 +1080,27 @@
             <div class="history-student-class">${escapeHtml(student.class || '')}</div>
           </div>
           <span class="badge badge-${rec.status}">${statusLabels[rec.status] || rec.status}</span>
+          <button class="btn-history-delete" data-record-id="${rec.id}" title="Delete record">✕</button>
         </div>`;
     });
     container.innerHTML = html;
+
+    // Attach delete handlers
+    container.querySelectorAll('.btn-history-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const recordId = btn.dataset.recordId;
+        showConfirmDialog(
+          'Delete Record',
+          'Delete this attendance record? This cannot be undone.',
+          () => {
+            state.attendance = state.attendance.filter(r => r.id !== recordId);
+            saveAttendance();
+            renderHistory();
+            showToast('Record deleted.');
+          }
+        );
+      });
+    });
   }
 
   function exportHistoryCSV() {
