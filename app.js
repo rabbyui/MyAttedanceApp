@@ -177,6 +177,7 @@
     $('#student-search').addEventListener('input', renderStudentList);
 
     // Attendance
+    $('#attendance-filter-class').addEventListener('change', renderAttendanceList);
     $('#attendance-date').addEventListener('change', (e) => {
       const newDate = e.target.value;
       if (hasUnsavedAttendance()) {
@@ -201,11 +202,14 @@
     });
     $('#btn-mark-all-present').addEventListener('click', () => markAllAttendance('present'));
     $('#btn-mark-all-absent').addEventListener('click', () => markAllAttendance('absent'));
+    $('#btn-mark-all-late').addEventListener('click', () => markAllAttendance('late'));
+    $('#btn-mark-all-excused').addEventListener('click', () => markAllAttendance('excused'));
     $('#btn-save-attendance').addEventListener('click', saveCurrentAttendance);
 
     // History
     $('#history-date-from').addEventListener('change', renderHistory);
     $('#history-date-to').addEventListener('change', renderHistory);
+    $('#history-filter-class').addEventListener('change', renderHistory);
     $('#history-status-filter').addEventListener('change', renderHistory);
     $('#btn-export-history').addEventListener('click', exportHistoryCSV);
 
@@ -539,14 +543,45 @@
       return;
     }
 
+    // Build unique course/section options & populate filter
+    const classSet = new Set();
+    state.students.forEach(s => {
+      if (s.class) classSet.add(s.class);
+    });
+    const sortedClasses = Array.from(classSet).sort();
+    const filterSelect = $('#attendance-filter-class');
+    const currentFilter = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">All Sections</option>';
+    sortedClasses.forEach(cls => {
+      filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
+    });
+    filterSelect.value = currentFilter;
+
+    // Show filtered count
+    const countEl = $('#attendance-filter-count');
+    countEl.textContent = '';
+
+    // Filter students by selected course/section
+    const selectedClass = filterSelect.value;
+    let filteredStudents = state.students;
+    if (selectedClass !== 'all') {
+      filteredStudents = state.students.filter(s => s.class === selectedClass);
+      countEl.textContent = `Showing ${filteredStudents.length} of ${state.students.length} students`;
+    }
+
     // Build a map of studentId -> existing status
     const existingMap = {};
     existingRecords.forEach(r => {
       existingMap[r.studentId] = r.status;
     });
 
+    if (filteredStudents.length === 0) {
+      container.innerHTML = '<p class="empty-state">No students match the selected section.</p>';
+      return;
+    }
+
     let html = '';
-    state.students.forEach((student, index) => {
+    filteredStudents.forEach((student, index) => {
       const currentStatus = state.attendanceChanges[student.id] || existingMap[student.id] || '';
       const statusLabels = [
         { key: 'present', label: 'P', title: 'Present', cls: 'present' },
@@ -597,8 +632,13 @@
   }
 
   function markAllAttendance(status) {
-    const date = state.currentDate;
-    state.students.forEach(student => {
+    const filterSelect = $('#attendance-filter-class');
+    const selectedClass = filterSelect.value;
+    const targetStudents = selectedClass === 'all'
+      ? state.students
+      : state.students.filter(s => s.class === selectedClass);
+
+    targetStudents.forEach(student => {
       state.attendanceChanges[student.id] = status;
     });
     renderAttendanceList();
@@ -665,7 +705,28 @@
     const dateTo = $('#history-date-to').value;
     const statusFilter = $('#history-status-filter').value;
 
+    // Build unique course/section options & populate filter
+    const classSet = new Set();
+    state.students.forEach(s => {
+      if (s.class) classSet.add(s.class);
+    });
+    const sortedClasses = Array.from(classSet).sort();
+    const filterSelect = $('#history-filter-class');
+    const currentClassFilter = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">All Sections</option>';
+    sortedClasses.forEach(cls => {
+      filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
+    });
+    filterSelect.value = currentClassFilter;
+
     let records = [...state.attendance];
+
+    // Course & Section filter
+    const selectedClass = filterSelect.value;
+    if (selectedClass !== 'all') {
+      const studentIds = state.students.filter(s => s.class === selectedClass).map(s => s.id);
+      records = records.filter(r => studentIds.includes(r.studentId));
+    }
 
     // Date filter
     if (dateFrom) {
@@ -742,8 +803,16 @@
     const dateFrom = $('#history-date-from').value;
     const dateTo = $('#history-date-to').value;
     const statusFilter = $('#history-status-filter').value;
+    const classFilter = $('#history-filter-class').value;
 
     let records = [...state.attendance];
+
+    // Course & Section filter
+    if (classFilter !== 'all') {
+      const studentIds = state.students.filter(s => s.class === classFilter).map(s => s.id);
+      records = records.filter(r => studentIds.includes(r.studentId));
+    }
+
     if (dateFrom) records = records.filter(r => r.date >= dateFrom);
     if (dateTo) records = records.filter(r => r.date <= dateTo);
     if (statusFilter !== 'all') records = records.filter(r => r.status === statusFilter);
