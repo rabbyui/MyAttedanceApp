@@ -1,5 +1,5 @@
 {
-  "name": "Attendance Tracker",
+  "name": "DrC Attendance",
   "short_name": "Attendance",
   "description": "Mobile attendance tracking system for teachers with control number security",
   "start_url": "./index.html",
