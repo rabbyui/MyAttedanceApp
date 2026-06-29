@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a73e8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a73e8'/%3E%3Ctext x='50' y='68' font-size='55' text-anchor='middle' fill='white'%3E✓%3C/text%3E%3C/svg%3E">
+  <title>DrCatayoc Attendance Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SETUP SCREEN (first-time control number setup) -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="screen-setup" class="screen active">
+    <div class="screen-center">
+      <div class="app-logo">
+        <div class="logo-icon">✓</div>
+      </div>
+      <h1 class="app-title">Attendance Tracker</h1>
+      <p class="app-subtitle">Set up your control number to secure the app</p>
+      <div class="setup-form">
+        <div class="form-group">
+          <label for="setup-number">Create a 4-digit Control Number</label>
+          <input type="password" id="setup-number" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+        <div class="form-group">
+          <label for="setup-confirm">Confirm Control Number</label>
+          <input type="password" id="setup-confirm" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+        <p id="setup-error" class="error-message"></p>
+        <button id="btn-setup" class="btn btn-primary btn-full">Set Control Number</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- LOGIN SCREEN (control number entry)            -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="screen-login" class="screen">
+    <div class="screen-center">
+      <div class="app-logo">
+        <div class="logo-icon">✓</div>
+      </div>
+      <h1 class="app-title">Attendance Tracker</h1>
+      <p class="app-subtitle">Enter your control number to continue</p>
+      <div class="pin-display" id="pin-display">
+        <span class="pin-dot" data-i="0"></span>
+        <span class="pin-dot" data-i="1"></span>
+        <span class="pin-dot" data-i="2"></span>
+        <span class="pin-dot" data-i="3"></span>
+      </div>
+      <p id="login-error" class="error-message"></p>
+      <div class="numpad" id="numpad">
+        <button class="numpad-btn" data-value="1">1</button>
+        <button class="numpad-btn" data-value="2">2</button>
+        <button class="numpad-btn" data-value="3">3</button>
+        <button class="numpad-btn" data-value="4">4</button>
+        <button class="numpad-btn" data-value="5">5</button>
+        <button class="numpad-btn" data-value="6">6</button>
+        <button class="numpad-btn" data-value="7">7</button>
+        <button class="numpad-btn" data-value="8">8</button>
+        <button class="numpad-btn" data-value="9">9</button>
+        <button class="numpad-btn numpad-btn-clear" data-value="clear">⌫</button>
+        <button class="numpad-btn" data-value="0">0</button>
+        <button class="numpad-btn numpad-btn-go" data-value="go">GO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- MAIN APP                                      -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div id="screen-app" class="screen">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="header-icon">✓</span>
+        <span class="header-title">Attendance</span>
+      </div>
+      <button id="btn-logout" class="btn-icon" title="Logout" aria-label="Logout">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </header>
+
+    <!-- Page: Dashboard -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-content">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+          <div class="stat-card stat-blue">
+            <span class="stat-number" id="stat-total">0</span>
+            <span class="stat-label">Students</span>
+          </div>
+          <div class="stat-card stat-green">
+            <span class="stat-number" id="stat-present-today">0</span>
+            <span class="stat-label">Present Today</span>
+          </div>
+          <div class="stat-card stat-red">
+            <span class="stat-number" id="stat-absent-today">0</span>
+            <span class="stat-label">Absent Today</span>
+          </div>
+          <div class="stat-card stat-orange">
+            <span class="stat-number" id="stat-late-today">0</span>
+            <span class="stat-label">Late Today</span>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <h2 class="section-title">Quick Actions</h2>
+        <div class="action-cards">
+          <button class="action-card" id="dash-take-attendance">
+            <div class="action-icon action-icon-green">📋</div>
+            <div class="action-text">
+              <span class="action-label">Take Attendance</span>
+              <span class="action-desc">Mark today's attendance</span>
+            </div>
+            <span class="action-arrow">→</span>
+          </button>
+          <button class="action-card" id="dash-manage-students">
+            <div class="action-icon action-icon-blue">👥</div>
+            <div class="action-text">
+              <span class="action-label">Manage Students</span>
+              <span class="action-desc">Add or remove students</span>
+            </div>
+            <span class="action-arrow">→</span>
+          </button>
+          <button class="action-card" id="dash-history">
+            <div class="action-icon action-icon-purple">📊</div>
+            <div class="action-text">
+              <span class="action-label">Attendance History</span>
+              <span class="action-desc">View reports & records</span>
+            </div>
+            <span class="action-arrow">→</span>
+          </button>
+          <button class="action-card" id="dash-settings">
+            <div class="action-icon action-icon-gray">⚙️</div>
+            <div class="action-text">
+              <span class="action-label">Settings</span>
+              <span class="action-desc">Change control number</span>
+            </div>
+            <span class="action-arrow">→</span>
+          </button>
+        </div>
+
+        <!-- Today's Attendance Preview -->
+        <h2 class="section-title">Today's Attendance</h2>
+        <div id="today-preview">
+          <p class="empty-state">No attendance taken yet today.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Manage Students -->
+    <div id="page-students" class="page">
+      <div class="page-header">
+        <button class="btn-back" data-page="dashboard">←</button>
+        <h2>Manage Students</h2>
+        <button id="btn-add-student" class="btn-sm btn-primary">+ Add</button>
+      </div>
+      <div class="page-content">
+        <!-- Student list -->
+        <div id="student-search-container">
+          <input type="text" id="student-search" class="search-input" placeholder="Search students...">
+        </div>
+        <div id="student-list" class="list-container">
+          <p class="empty-state">No students yet. Add your first student!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Add/Edit Student -->
+    <div id="page-add-student" class="page">
+      <div class="page-header">
+        <button class="btn-back" data-page="students">←</button>
+        <h2 id="add-student-title">Add Student</h2>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <form id="student-form" class="form">
+          <div class="form-group">
+            <label for="student-name">Full Name</label>
+            <input type="text" id="student-name" class="form-input" placeholder="Enter student's full name" required>
+          </div>
+          <div class="form-group">
+            <label for="student-class">Class / Section</label>
+            <input type="text" id="student-class" class="form-input" placeholder="e.g. Grade 1-A" required>
+          </div>
+          <div class="form-group">
+            <label for="student-id-number">Student ID (optional)</label>
+            <input type="text" id="student-id-number" class="form-input" placeholder="e.g. STD-001">
+          </div>
+          <div class="form-group" id="edit-notes-group" style="display:none;">
+            <label>Created</label>
+            <p id="student-created-display" class="text-muted"></p>
+          </div>
+          <p id="student-form-error" class="error-message"></p>
+          <div class="form-actions">
+            <button type="submit" id="btn-save-student" class="btn btn-primary btn-full">Save Student</button>
+            <button type="button" id="btn-delete-student" class="btn btn-danger btn-full" style="display:none;">Delete Student</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Page: Take Attendance -->
+    <div id="page-attendance" class="page">
+      <div class="page-header">
+        <button class="btn-back" data-page="dashboard">←</button>
+        <h2>Take Attendance</h2>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <div class="attendance-controls">
+          <div class="form-group">
+            <label for="attendance-date">Date</label>
+            <input type="date" id="attendance-date" class="form-input">
+          </div>
+          <div class="attendance-actions">
+            <button id="btn-mark-all-present" class="btn-sm btn-success">✓ Mark All Present</button>
+            <button id="btn-mark-all-absent" class="btn-sm btn-danger">✗ Mark All Absent</button>
+          </div>
+        </div>
+        <div id="attendance-list" class="list-container">
+          <p class="empty-state">No students to mark. Add students first!</p>
+        </div>
+        <button id="btn-save-attendance" class="btn btn-primary btn-full" style="margin-top:16px;">
+          💾 Save Attendance
+        </button>
+        <p id="attendance-save-msg" class="success-message"></p>
+      </div>
+    </div>
+
+    <!-- Page: History -->
+    <div id="page-history" class="page">
+      <div class="page-header">
+        <button class="btn-back" data-page="dashboard">←</button>
+        <h2>Attendance History</h2>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <div class="history-filters">
+          <div class="form-group">
+            <label for="history-date-from">From</label>
+            <input type="date" id="history-date-from" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="history-date-to">To</label>
+            <input type="date" id="history-date-to" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="history-status-filter">Status</label>
+            <select id="history-status-filter" class="form-input">
+              <option value="all">All</option>
+              <option value="present">Present</option>
+              <option value="absent">Absent</option>
+              <option value="late">Late</option>
+              <option value="excused">Excused</option>
+            </select>
+          </div>
+        </div>
+        <div class="history-stats" id="history-stats">
+          <div class="stat-chip stat-chip-green">Present: <span id="hist-present">0</span></div>
+          <div class="stat-chip stat-chip-red">Absent: <span id="hist-absent">0</span></div>
+          <div class="stat-chip stat-chip-orange">Late: <span id="hist-late">0</span></div>
+          <div class="stat-chip stat-chip-blue">Excused: <span id="hist-excused">0</span></div>
+        </div>
+        <div id="history-list" class="list-container">
+          <p class="empty-state">No attendance records found.</p>
+        </div>
+        <button id="btn-export-history" class="btn btn-secondary btn-full" style="margin-top:12px;">
+          📤 Export as CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Page: Settings -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <button class="btn-back" data-page="dashboard">←</button>
+        <h2>Settings</h2>
+        <div></div>
+      </div>
+      <div class="page-content">
+        <div class="settings-card">
+          <h3>Security</h3>
+          <div class="form-group">
+            <label for="settings-current-pin">Current Control Number</label>
+            <input type="password" id="settings-current-pin" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+          </div>
+          <div class="form-group">
+            <label for="settings-new-pin">New Control Number</label>
+            <input type="password" id="settings-new-pin" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+          </div>
+          <div class="form-group">
+            <label for="settings-confirm-pin">Confirm New Control Number</label>
+            <input type="password" id="settings-confirm-pin" class="pin-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+          </div>
+          <p id="settings-error" class="error-message"></p>
+          <p id="settings-success" class="success-message"></p>
+          <button id="btn-change-pin" class="btn btn-primary btn-full">Change Control Number</button>
+        </div>
+        <div class="settings-card">
+          <h3>Data Management</h3>
+          <button id="btn-export-data" class="btn btn-secondary btn-full">📤 Export All Data (JSON)</button>
+          <button id="btn-import-data" class="btn btn-secondary btn-full" style="margin-top:8px;">📥 Import Data (JSON)</button>
+          <input type="file" id="import-file-input" accept=".json" style="display:none;">
+          <button id="btn-reset-data" class="btn btn-danger btn-full" style="margin-top:16px;">🗑️ Reset All Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Confirm Dialog -->
+  <div id="confirm-dialog" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3 id="confirm-title">Are you sure?</h3>
+      <p id="confirm-message"></p>
+      <div class="modal-actions">
+        <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="confirm-ok" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
