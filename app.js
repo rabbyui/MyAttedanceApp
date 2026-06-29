@@ -395,6 +395,16 @@
     });
     filterSelect.value = currentFilter;
 
+    // Show filtered count
+    const countEl = $('#trends-filter-count');
+    const currentClassSel = filterSelect.value;
+    if (currentClassSel !== 'all') {
+      const classCount = state.students.filter(s => s.class === currentClassSel).length;
+      countEl.textContent = `Showing ${classCount} of ${state.students.length} students`;
+    } else {
+      countEl.textContent = '';
+    }
+
     if (state.attendance.length === 0) {
       container.innerHTML = '<p class="empty-state">No attendance data available yet.</p>';
       return;
