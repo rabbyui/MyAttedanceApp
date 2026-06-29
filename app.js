@@ -886,11 +886,23 @@
     btn.textContent = '⏳ Saving...';
     btn.style.opacity = '.7';
 
+    // Build a map of existing statuses for this date BEFORE removing records
+    // This ensures unmodified students keep their saved status
+    const existingForDate = {};
+    state.attendance.forEach(r => {
+      if (r.date === date) {
+        existingForDate[r.studentId] = r.status;
+      }
+    });
+
     // Remove existing records for this date
     state.attendance = state.attendance.filter(r => r.date !== date);
 
-    // Add new records for each student with a status set
-    Object.entries(changes).forEach(([studentId, status]) => {
+    // Merge all student IDs: freshly modified + previously saved but unmodified
+    const allStudentIds = new Set([...Object.keys(changes), ...Object.keys(existingForDate)]);
+    allStudentIds.forEach(studentId => {
+      // Use the explicit change if present, otherwise keep the existing status
+      const status = changes[studentId] !== undefined ? changes[studentId] : existingForDate[studentId];
       if (status) {
         state.attendance.push({
           id: generateId(),
