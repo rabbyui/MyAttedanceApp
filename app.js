@@ -161,10 +161,15 @@
       btn.addEventListener('click', () => {
         document.querySelectorAll('.trend-period-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        // Clear custom date range so period button takes effect
+        $('#trend-date-from').value = '';
+        $('#trend-date-to').value = '';
         renderTrendsChart();
       });
     });
-    $('#trends-filter-class').addEventListener('change', renderTrendsChart);
+    $('#dashboard-filter-class').addEventListener('change', refreshDashboard);
+    $('#trend-date-from').addEventListener('change', renderTrendsChart);
+    $('#trend-date-to').addEventListener('change', renderTrendsChart);
     $('#dash-manage-students').addEventListener('click', () => {
       showPage('students');
       renderStudentList();
@@ -339,11 +344,42 @@
 
   // ─── DASHBOARD ─────────────────────────────────────────────────
   function refreshDashboard() {
-    const total = state.students.length;
+    // Build unique course/section options & populate dashboard filter
+    const classSet = new Set();
+    state.students.forEach(s => {
+      if (s.class) classSet.add(s.class);
+    });
+    const sortedClasses = Array.from(classSet).sort();
+    const filterSelect = $('#dashboard-filter-class');
+    const currentFilter = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">All Sections</option>';
+    sortedClasses.forEach(cls => {
+      filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
+    });
+    filterSelect.value = currentFilter;
+
+    // Determine which students are visible
+    const selectedClass = filterSelect.value;
+    const visibleStudents = selectedClass === 'all'
+      ? state.students
+      : state.students.filter(s => s.class === selectedClass);
+
+    // Show filtered count
+    const countEl = $('#dashboard-filter-count');
+    if (selectedClass !== 'all') {
+      countEl.textContent = `Showing ${visibleStudents.length} of ${state.students.length} students`;
+    } else {
+      countEl.textContent = '';
+    }
+
+    // Stats cards (filtered by selected class)
+    const visibleStudentIds = visibleStudents.map(s => s.id);
+    const total = visibleStudents.length;
     $('#stat-total').textContent = total;
 
     const today = new Date().toISOString().slice(0, 10);
-    const todayRecords = state.attendance.filter(r => r.date === today);
+    const allTodayRecords = state.attendance.filter(r => r.date === today);
+    const todayRecords = allTodayRecords.filter(r => visibleStudentIds.includes(r.studentId));
 
     const present = todayRecords.filter(r => r.status === 'present').length;
     const absent = todayRecords.filter(r => r.status === 'absent').length;
@@ -356,7 +392,10 @@
     // Today's preview list
     const container = $('#today-preview');
     if (todayRecords.length === 0) {
-      container.innerHTML = '<p class="empty-state">No attendance taken yet today.</p>';
+      container.innerHTML = '<p class="empty-state">' +
+        (total === 0 ? 'No attendance taken yet today.' : 'No records for this section today.') +
+        '</p>';
+      renderTrendsChart();
       return;
     }
 
@@ -379,52 +418,47 @@
   // ─── ATTENDANCE TRENDS CHART ────────────────────────────────────
   function renderTrendsChart() {
     const container = $('#trends-container');
-    const activePeriod = parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10);
+    const rateEl = $('#trend-rate');
 
-    // Build unique course/section options & populate filter (always, even if no records yet)
-    const classSet = new Set();
-    state.students.forEach(s => {
-      if (s.class) classSet.add(s.class);
-    });
-    const sortedClasses = Array.from(classSet).sort();
-    const filterSelect = $('#trends-filter-class');
-    const currentFilter = filterSelect.value;
-    filterSelect.innerHTML = '<option value="all">All Sections</option>';
-    sortedClasses.forEach(cls => {
-      filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
-    });
-    filterSelect.value = currentFilter;
+    // Read the dashboard-level course/section filter
+    const filterSelect = $('#dashboard-filter-class');
+    const selectedClass = filterSelect.value;
 
-    // Show filtered count
-    const countEl = $('#trends-filter-count');
-    const currentClassSel = filterSelect.value;
-    if (currentClassSel !== 'all') {
-      const classCount = state.students.filter(s => s.class === currentClassSel).length;
-      countEl.textContent = `Showing ${classCount} of ${state.students.length} students`;
+    // Read custom date range from date pickers
+    const dateFrom = $('#trend-date-from').value;
+    const dateTo = $('#trend-date-to').value;
+    const useCustomRange = !!(dateFrom && dateTo);
+
+    // Determine period: custom range or active period button
+    let dates = [];
+    if (useCustomRange) {
+      // Build list of dates in the custom range
+      const start = new Date(dateFrom + 'T00:00:00');
+      const end = new Date(dateTo + 'T00:00:00');
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        dates.push(d.toISOString().slice(0, 10));
+      }
     } else {
-      countEl.textContent = '';
+      const activePeriod = parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10);
+      const today = new Date();
+      for (let i = activePeriod - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().slice(0, 10));
+      }
     }
 
     if (state.attendance.length === 0) {
       container.innerHTML = '<p class="empty-state">No attendance data available yet.</p>';
+      rateEl.innerHTML = '';
       return;
     }
 
     // Filter attendance records by selected course/section
-    const selectedClass = filterSelect.value;
     let filteredAttendance = state.attendance;
     if (selectedClass !== 'all') {
       const studentIds = state.students.filter(s => s.class === selectedClass).map(s => s.id);
       filteredAttendance = state.attendance.filter(r => studentIds.includes(r.studentId));
-    }
-
-    // Build date range (last N days, including today)
-    const today = new Date();
-    const dates = [];
-    for (let i = activePeriod - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().slice(0, 10));
     }
 
     // Group filtered attendance records by date
@@ -442,6 +476,7 @@
     };
 
     let hasData = false;
+    let totalPresent = 0, totalAbsent = 0, totalLate = 0, totalExcused = 0;
     let chartHtml = '<div class="trend-chart">';
 
     dates.forEach((dateStr, idx) => {
@@ -466,6 +501,11 @@
       records.forEach(r => {
         if (counts[r.status] !== undefined) counts[r.status]++;
       });
+
+      totalPresent += counts.present;
+      totalAbsent += counts.absent;
+      totalLate += counts.late;
+      totalExcused += counts.excused;
 
       const dayLabel = formatShortDate(dateStr);
 
@@ -504,6 +544,33 @@
 
     if (!hasData && state.attendance.length > 0) {
       container.innerHTML = '<p class="trend-no-data">No attendance records in the selected period.</p>';
+      rateEl.innerHTML = '';
+      return;
+    }
+
+    // Attendance rate stat
+    const totalRecords = totalPresent + totalAbsent + totalLate + totalExcused;
+    if (totalRecords > 0) {
+      const attendanceRate = ((totalPresent + totalLate + totalExcused) / totalRecords) * 100;
+      
+      // Determine color based on rate
+      let rateColor = 'var(--danger)';
+      if (attendanceRate >= 90) rateColor = 'var(--success)';
+      else if (attendanceRate >= 75) rateColor = 'var(--warning)';
+
+      rateEl.innerHTML = `
+        <div class="trend-rate-value" style="color:${rateColor}">${attendanceRate.toFixed(1)}%</div>
+        <div class="trend-rate-detail">
+          <div class="trend-rate-label">Attendance Rate</div>
+          <div class="trend-rate-breakdown">
+            <span class="rp">${totalPresent} P</span> · 
+            <span class="ra">${totalAbsent} A</span> · 
+            <span class="rl">${totalLate} L</span> · 
+            <span class="re">${totalExcused} E</span>
+          </div>
+        </div>`;
+    } else {
+      rateEl.innerHTML = '';
     }
   }
 

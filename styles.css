@@ -1021,16 +1021,86 @@ a { color: var(--primary); text-decoration: none; }
 .today-student-item .badge { margin-left: auto; }
 
 /* ═══════════════════════════════════════════════
+   DASHBOARD FILTER BAR
+   ═══════════════════════════════════════════════ */
+.dashboard-filter {
+  margin-bottom: 16px;
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-filter .form-group {
+  margin-bottom: 0;
+}
+
+.dashboard-filter .form-input {
+  font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════
    ATTENDANCE TRENDS CHART
    ═══════════════════════════════════════════════ */
-.trends-filter {
+.trend-date-range {
+  display: flex;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
-.trends-filter .form-input {
+.trend-date-range .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.trend-date-range .form-input {
   font-size: 13px;
   padding: 8px 10px;
 }
+
+.trend-rate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
+}
+
+.trend-rate-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--gray-900);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.trend-rate-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-rate-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.trend-rate-breakdown {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+
+.trend-rate-breakdown span { font-weight: 600; }
+.trend-rate-breakdown .rp { color: var(--success); }
+.trend-rate-breakdown .ra { color: var(--danger); }
+.trend-rate-breakdown .rl { color: #e37400; }
+.trend-rate-breakdown .re { color: var(--info); }
 
 .trend-period-selector {
   display: inline-flex;

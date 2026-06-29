@@ -89,6 +89,17 @@
     <!-- Page: Dashboard -->
     <div id="page-dashboard" class="page active">
       <div class="page-content">
+        <!-- Dashboard Filter (affects stats, today preview, and trends) -->
+        <div class="dashboard-filter">
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="dashboard-filter-class">Course & Section</label>
+            <select id="dashboard-filter-class" class="form-input">
+              <option value="all">All Sections</option>
+            </select>
+            <div id="dashboard-filter-count" class="filter-count"></div>
+          </div>
+        </div>
+
         <!-- Stats Cards -->
         <div class="stats-grid">
           <div class="stat-card stat-blue">
@@ -161,14 +172,17 @@
             <button class="trend-period-btn" data-period="30">30d</button>
           </span>
         </h2>
-        <div class="trends-filter">
+        <div class="trend-date-range">
           <div class="form-group" style="margin-bottom:0;">
-            <select id="trends-filter-class" class="form-input">
-              <option value="all">All Sections</option>
-            </select>
-            <div id="trends-filter-count" class="filter-count"></div>
+            <label for="trend-date-from">From</label>
+            <input type="date" id="trend-date-from" class="form-input">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="trend-date-to">To</label>
+            <input type="date" id="trend-date-to" class="form-input">
           </div>
         </div>
+        <div id="trend-rate" class="trend-rate"></div>
         <div id="trends-container">
           <p class="empty-state">No attendance data available yet.</p>
         </div>
