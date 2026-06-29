@@ -1021,6 +1021,136 @@ a { color: var(--primary); text-decoration: none; }
 .today-student-item .badge { margin-left: auto; }
 
 /* ═══════════════════════════════════════════════
+   ATTENDANCE TRENDS CHART
+   ═══════════════════════════════════════════════ */
+.trend-period-selector {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  background: var(--gray-100);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.trend-period-btn {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  color: var(--gray-600);
+  transition: all var(--transition);
+}
+
+.trend-period-btn.active {
+  background: #fff;
+  color: var(--gray-900);
+  box-shadow: var(--shadow-sm);
+}
+
+.trend-period-btn:active { transform: scale(.95); }
+
+.trend-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trend-date-label {
+  width: 60px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.trend-bar {
+  flex: 1;
+  height: 24px;
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--gray-100);
+  min-width: 0;
+}
+
+.trend-bar-segment {
+  height: 100%;
+  transition: width .4s ease;
+  position: relative;
+}
+
+.trend-bar-segment:first-child { border-radius: 6px 0 0 6px; }
+.trend-bar-segment:last-child { border-radius: 0 6px 6px 0; }
+.trend-bar-segment:only-child { border-radius: 6px; }
+
+.trend-bar-segment.present { background: var(--success); }
+.trend-bar-segment.absent { background: var(--danger); }
+.trend-bar-segment.late { background: var(--warning); }
+.trend-bar-segment.excused { background: var(--info); }
+
+.trend-bar-count {
+  width: 36px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-200);
+  justify-content: center;
+}
+
+.trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.trend-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.trend-legend-dot.present { background: var(--success); }
+.trend-legend-dot.absent { background: var(--danger); }
+.trend-legend-dot.late { background: var(--warning); }
+.trend-legend-dot.excused { background: var(--info); }
+
+.trend-no-data {
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+@keyframes barGrow {
+  from { width: 0 !important; }
+}
+
+.trend-bar-segment {
+  animation: barGrow .5s ease both;
+}
+
+/* ═══════════════════════════════════════════════
    SCROLLBAR
    ═══════════════════════════════════════════════ */
 .page::-webkit-scrollbar { width: 4px; }

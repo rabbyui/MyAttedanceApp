@@ -157,6 +157,13 @@
 
     // Dashboard actions
     $('#dash-take-attendance').addEventListener('click', openAttendance);
+    document.querySelectorAll('.trend-period-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.trend-period-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTrendsChart();
+      });
+    });
     $('#dash-manage-students').addEventListener('click', () => {
       showPage('students');
       renderStudentList();
@@ -364,6 +371,127 @@
         </div>`;
     });
     container.innerHTML = html || '<p class="empty-state">No students found.</p>';
+
+    renderTrendsChart();
+  }
+
+  // ─── ATTENDANCE TRENDS CHART ────────────────────────────────────
+  function renderTrendsChart() {
+    const container = $('#trends-container');
+    const activePeriod = parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10);
+
+    if (state.attendance.length === 0) {
+      container.innerHTML = '<p class="empty-state">No attendance data available yet.</p>';
+      return;
+    }
+
+    // Build date range (last N days, including today)
+    const today = new Date();
+    const dates = [];
+    for (let i = activePeriod - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      dates.push(d.toISOString().slice(0, 10));
+    }
+
+    // Group attendance records by date
+    const recordsByDate = {};
+    state.attendance.forEach(r => {
+      if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
+      recordsByDate[r.date].push(r);
+    });
+
+    const statusColors = {
+      present: 'present',
+      absent: 'absent',
+      late: 'late',
+      excused: 'excused',
+    };
+
+    const statusLabels = {
+      present: 'Present',
+      absent: 'Absent',
+      late: 'Late',
+      excused: 'Excused',
+    };
+
+    let hasData = false;
+    let chartHtml = '<div class="trend-chart">';
+
+    dates.forEach((dateStr, idx) => {
+      const records = recordsByDate[dateStr] || [];
+      const total = records.length;
+      if (total === 0) {
+        // Show empty row
+        const dayLabel = formatShortDate(dateStr);
+        chartHtml += `
+          <div class="trend-row" style="animation: slideUp .25s ease ${idx * 30}ms both">
+            <span class="trend-date-label">${escapeHtml(dayLabel)}</span>
+            <div class="trend-bar"></div>
+            <span class="trend-bar-count">0</span>
+          </div>`;
+        return;
+      }
+
+      hasData = true;
+
+      // Count by status
+      const counts = { present: 0, absent: 0, late: 0, excused: 0 };
+      records.forEach(r => {
+        if (counts[r.status] !== undefined) counts[r.status]++;
+      });
+
+      const dayLabel = formatShortDate(dateStr);
+
+      // Build bar segments
+      let barHtml = '';
+      const statuses = ['present', 'absent', 'late', 'excused'];
+      statuses.forEach(status => {
+        const count = counts[status];
+        if (count === 0) return;
+        const pct = (count / total) * 100;
+        barHtml += `<div class="trend-bar-segment ${status}" style="width:${pct}%"></div>`;
+      });
+
+      chartHtml += `
+        <div class="trend-row" style="animation: slideUp .25s ease ${idx * 30}ms both">
+          <span class="trend-date-label">${escapeHtml(dayLabel)}</span>
+          <div class="trend-bar">${barHtml}</div>
+          <span class="trend-bar-count">${total}</span>
+        </div>`;
+    });
+
+    chartHtml += '</div>';
+
+    // Legend
+    chartHtml += '<div class="trend-legend">';
+    Object.entries(statusLabels).forEach(([key, label]) => {
+      chartHtml += `
+        <div class="trend-legend-item">
+          <span class="trend-legend-dot ${key}"></span>
+          ${label}
+        </div>`;
+    });
+    chartHtml += '</div>';
+
+    container.innerHTML = chartHtml;
+
+    if (!hasData && state.attendance.length > 0) {
+      container.innerHTML = '<p class="trend-no-data">No attendance records in the selected period.</p>';
+    }
+  }
+
+  function formatShortDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (dateStr === today.toISOString().slice(0, 10)) return 'Today';
+    if (dateStr === yesterday.toISOString().slice(0, 10)) return 'Yesterday';
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate();
   }
 
   // ─── STUDENT MANAGEMENT ────────────────────────────────────────
