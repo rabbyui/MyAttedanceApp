@@ -18,7 +18,7 @@
     controlNumber: null,
     students: [],
     attendance: [],
-    currentDate: new Date().toISOString().slice(0, 10),
+    currentDate: getTodayString(),
     editStudentId: null,
     attendanceChanges: {},
   };
@@ -114,7 +114,7 @@
       controlNumber: null,
       students: [],
       attendance: [],
-      currentDate: new Date().toISOString().slice(0, 10),
+      currentDate: getTodayString(),
       editStudentId: null,
       attendanceChanges: {},
     };
@@ -386,9 +386,10 @@
       filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
     });
     filterSelect.value = currentFilter;
+    if (!filterSelect.value) filterSelect.value = 'all';
 
     // Determine which students are visible
-    const selectedClass = filterSelect.value;
+    const selectedClass = filterSelect.value || 'all';
     const visibleStudents = selectedClass === 'all'
       ? state.students
       : state.students.filter(s => s.class === selectedClass);
@@ -406,7 +407,7 @@
     const total = visibleStudents.length;
     $('#stat-total').textContent = total;
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getTodayString();
     const allTodayRecords = state.attendance.filter(r => r.date === today);
     const todayRecords = allTodayRecords.filter(r => visibleStudentIds.includes(r.studentId));
 
@@ -453,7 +454,7 @@
 
     // Read the dashboard-level course/section filter
     const filterSelect = $('#dashboard-filter-class');
-    const selectedClass = filterSelect.value;
+    const selectedClass = filterSelect.value || 'all';
 
     // Read custom date range from date pickers
     const dateFrom = $('#trend-date-from').value;
@@ -463,19 +464,20 @@
     // Determine period: custom range or active period button
     let dates = [];
     if (useCustomRange) {
-      // Build list of dates in the custom range
-      const start = new Date(dateFrom + 'T00:00:00');
-      const end = new Date(dateTo + 'T00:00:00');
+      // Build list of local date strings in the custom range.
+      // Do not use toISOString() for date-only values; it converts to UTC and can shift dates.
+      const start = parseLocalDate(dateFrom);
+      const end = parseLocalDate(dateTo);
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        dates.push(d.toISOString().slice(0, 10));
+        dates.push(formatLocalDate(d));
       }
     } else {
       const activePeriod = parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10);
-      const today = new Date();
+      const today = parseLocalDate(getTodayString());
       for (let i = activePeriod - 1; i >= 0; i--) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        dates.push(d.toISOString().slice(0, 10));
+        dates.push(formatLocalDate(d));
       }
     }
 
@@ -613,13 +615,13 @@
   }
 
   function formatShortDate(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    const today = new Date();
-    const yesterday = new Date(today);
+    const d = parseLocalDate(dateStr);
+    const todayStr = getTodayString();
+    const yesterday = parseLocalDate(todayStr);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (dateStr === today.toISOString().slice(0, 10)) return 'Today';
-    if (dateStr === yesterday.toISOString().slice(0, 10)) return 'Yesterday';
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === formatLocalDate(yesterday)) return 'Yesterday';
 
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return days[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate();
@@ -773,7 +775,7 @@
 
   // ─── ATTENDANCE ────────────────────────────────────────────────
   function openAttendance() {
-    state.currentDate = new Date().toISOString().slice(0, 10);
+    state.currentDate = getTodayString();
     $('#attendance-date').value = state.currentDate;
     resetAttendanceChanges();
     showPage('attendance');
@@ -830,13 +832,14 @@
       filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
     });
     filterSelect.value = currentFilter;
+    if (!filterSelect.value) filterSelect.value = 'all';
 
     // Show filtered count
     const countEl = $('#attendance-filter-count');
     countEl.textContent = '';
 
     // Filter students by selected course/section
-    const selectedClass = filterSelect.value;
+    const selectedClass = filterSelect.value || 'all';
     let filteredStudents = state.students;
     if (selectedClass !== 'all') {
       filteredStudents = state.students.filter(s => s.class === selectedClass);
@@ -907,7 +910,7 @@
 
   function markAllAttendance(status) {
     const filterSelect = $('#attendance-filter-class');
-    const selectedClass = filterSelect.value;
+    const selectedClass = filterSelect.value || 'all';
     const targetStudents = selectedClass === 'all'
       ? state.students
       : state.students.filter(s => s.class === selectedClass);
@@ -1004,11 +1007,12 @@
       filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
     });
     filterSelect.value = currentClassFilter;
+    if (!filterSelect.value) filterSelect.value = 'all';
 
     let records = [...state.attendance];
 
     // Course & Section filter
-    const selectedClass = filterSelect.value;
+    const selectedClass = filterSelect.value || 'all';
     if (selectedClass !== 'all') {
       const studentIds = state.students.filter(s => s.class === selectedClass).map(s => s.id);
       records = records.filter(r => studentIds.includes(r.studentId));
@@ -1065,7 +1069,7 @@
       const student = state.students.find(s => s.id === rec.studentId);
       if (!student) return;
 
-      const d = new Date(rec.date + 'T00:00:00');
+      const d = parseLocalDate(rec.date);
       const day = d.getDate();
       const month = d.toLocaleString('default', { month: 'short' });
 
@@ -1138,7 +1142,7 @@
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `attendance_export_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = `attendance_export_${getTodayString()}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
     showToast('CSV exported!');
@@ -1194,7 +1198,7 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `attendance_backup_${new Date().toISOString().slice(0,10)}.json`;
+    link.download = `attendance_backup_${getTodayString()}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
     showToast('Data exported!');
@@ -1262,8 +1266,25 @@
     return div.innerHTML;
   }
 
+  function pad2(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function formatLocalDate(date) {
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+
+  function getTodayString() {
+    return formatLocalDate(new Date());
+  }
+
+  function parseLocalDate(dateStr) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
   function formatDate(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',

@@ -2,7 +2,7 @@
    Attendance Tracker - Service Worker
    ═══════════════════════════════════════════════ */
 
-const CACHE_NAME = 'attendance-tracker-v1';
+const CACHE_NAME = 'attendance-tracker-v2';
 
 const urlsToCache = [
   './',
