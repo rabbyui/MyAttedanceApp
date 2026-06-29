@@ -473,6 +473,7 @@ a { color: var(--primary); text-decoration: none; }
 .stat-green { border-top-color: var(--success); }
 .stat-red { border-top-color: var(--danger); }
 .stat-orange { border-top-color: var(--warning); }
+.stat-info { border-top-color: var(--info); }
 
 .stat-number {
   display: block;
@@ -1240,7 +1241,7 @@ a { color: var(--primary); text-decoration: none; }
    RESPONSIVE
    ═══════════════════════════════════════════════ */
 @media (min-width: 480px) {
-  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .stats-grid { grid-template-columns: repeat(5, 1fr); }
   .history-filters { grid-template-columns: repeat(2, 1fr); }
   .page-content { max-width: 600px; margin: 0 auto; width: 100%; }
 }

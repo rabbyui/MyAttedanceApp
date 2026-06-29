@@ -384,10 +384,12 @@
     const present = todayRecords.filter(r => r.status === 'present').length;
     const absent = todayRecords.filter(r => r.status === 'absent').length;
     const late = todayRecords.filter(r => r.status === 'late').length;
+    const excused = todayRecords.filter(r => r.status === 'excused').length;
 
     $('#stat-present-today').textContent = present;
     $('#stat-absent-today').textContent = absent;
     $('#stat-late-today').textContent = late;
+    $('#stat-excused-today').textContent = excused;
 
     // Today's preview list
     const container = $('#today-preview');
