@@ -85,6 +85,7 @@
     try {
       const filters = {
         filterClass: $('#dashboard-filter-class')?.value || 'all',
+        snapshotDate: $('#dashboard-date')?.value || getTodayString(),
         dateFrom: $('#trend-date-from')?.value || '',
         dateTo: $('#trend-date-to')?.value || '',
         activePeriod: parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10),
@@ -196,6 +197,7 @@
       });
     });
     $('#dashboard-filter-class').addEventListener('change', () => { refreshDashboard(); saveDashboardFilters(); });
+    $('#dashboard-date')?.addEventListener('change', () => { refreshDashboard(); saveDashboardFilters(); });
     $('#trend-date-from').addEventListener('change', () => { renderTrendsChart(); saveDashboardFilters(); });
     $('#trend-date-to').addEventListener('change', () => { renderTrendsChart(); saveDashboardFilters(); });
     $('#dash-manage-students').addEventListener('click', () => {
@@ -407,8 +409,10 @@
     const total = visibleStudents.length;
     $('#stat-total').textContent = total;
 
-    const today = getTodayString();
-    const allTodayRecords = state.attendance.filter(r => r.date === today);
+    const dashboardDateInput = $('#dashboard-date');
+    if (dashboardDateInput && !dashboardDateInput.value) dashboardDateInput.value = getTodayString();
+    const selectedDate = dashboardDateInput?.value || getTodayString();
+    const allTodayRecords = state.attendance.filter(r => r.date === selectedDate);
     const todayRecords = allTodayRecords.filter(r => visibleStudentIds.includes(r.studentId));
 
     const present = todayRecords.filter(r => r.status === 'present').length;
@@ -425,13 +429,15 @@
     const container = $('#today-preview');
     if (todayRecords.length === 0) {
       container.innerHTML = '<p class="empty-state">' +
-        (total === 0 ? 'No attendance taken yet today.' : 'No records for this section today.') +
+        (total === 0
+          ? `No students in this section.`
+          : `No attendance records for ${formatDate(selectedDate)} in this section.`) +
         '</p>';
       renderTrendsChart();
       return;
     }
 
-    let html = '';
+    let html = `<p class="snapshot-note">Showing records for ${formatDate(selectedDate)}</p>`;
     todayRecords.forEach(rec => {
       const student = state.students.find(s => s.id === rec.studentId);
       if (!student) return;
@@ -519,7 +525,7 @@
         // Show empty row
         const dayLabel = formatShortDate(dateStr);
         chartHtml += `
-          <div class="trend-row" style="animation: slideUp .25s ease ${idx * 30}ms both">
+          <div class="trend-row" data-date="${escapeHtml(dateStr)}" title="View this date on the dashboard" style="animation: slideUp .25s ease ${idx * 30}ms both">
             <span class="trend-date-label">${escapeHtml(dayLabel)}</span>
             <div class="trend-bar"></div>
             <span class="trend-bar-count">0</span>
@@ -560,7 +566,7 @@
       });
 
       chartHtml += `
-        <div class="trend-row" style="animation: slideUp .25s ease ${idx * 30}ms both">
+        <div class="trend-row" data-date="${escapeHtml(dateStr)}" title="View this date on the dashboard" style="animation: slideUp .25s ease ${idx * 30}ms both">
           <span class="trend-date-label">${escapeHtml(dayLabel)}</span>
           <div class="trend-bar">${barHtml}</div>
           <span class="trend-bar-count" style="min-width:52px;">${total} <span class="trend-rate-pct" style="color:${rateColor}">${dayRate.toFixed(0)}%</span></span>
@@ -581,6 +587,16 @@
     chartHtml += '</div>';
 
     container.innerHTML = chartHtml;
+
+    container.querySelectorAll('.trend-row[data-date]').forEach(row => {
+      row.addEventListener('click', () => {
+        const dashboardDate = $('#dashboard-date');
+        if (!dashboardDate) return;
+        dashboardDate.value = row.dataset.date;
+        refreshDashboard();
+        saveDashboardFilters();
+      });
+    });
 
     if (!hasData && state.attendance.length > 0) {
       container.innerHTML = '<p class="trend-no-data">No attendance records in the selected period.</p>';
@@ -787,6 +803,8 @@
     if (!filters) return;
     const filterSelect = $('#dashboard-filter-class');
     if (filterSelect) filterSelect.value = filters.filterClass || 'all';
+    const dashboardDate = $('#dashboard-date');
+    if (dashboardDate) dashboardDate.value = filters.snapshotDate || getTodayString();
     const dateFrom = $('#trend-date-from');
     const dateTo = $('#trend-date-to');
     if (dateFrom) dateFrom.value = filters.dateFrom || '';

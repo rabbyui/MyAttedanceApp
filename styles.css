@@ -1058,6 +1058,25 @@ a { color: var(--primary); text-decoration: none; }
   font-size: 14px;
 }
 
+.dashboard-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.snapshot-note {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin: 0 0 8px 2px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .dashboard-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ═══════════════════════════════════════════════
    ATTENDANCE TRENDS CHART
    ═══════════════════════════════════════════════ */
@@ -1157,6 +1176,7 @@ a { color: var(--primary); text-decoration: none; }
   display: flex;
   align-items: center;
   gap: 10px;
+  cursor: pointer;
 }
 
 .trend-date-label {
