@@ -164,6 +164,7 @@
         renderTrendsChart();
       });
     });
+    $('#trends-filter-class').addEventListener('change', renderTrendsChart);
     $('#dash-manage-students').addEventListener('click', () => {
       showPage('students');
       renderStudentList();
@@ -380,9 +381,31 @@
     const container = $('#trends-container');
     const activePeriod = parseInt(document.querySelector('.trend-period-btn.active')?.dataset.period || '7', 10);
 
+    // Build unique course/section options & populate filter (always, even if no records yet)
+    const classSet = new Set();
+    state.students.forEach(s => {
+      if (s.class) classSet.add(s.class);
+    });
+    const sortedClasses = Array.from(classSet).sort();
+    const filterSelect = $('#trends-filter-class');
+    const currentFilter = filterSelect.value;
+    filterSelect.innerHTML = '<option value="all">All Sections</option>';
+    sortedClasses.forEach(cls => {
+      filterSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
+    });
+    filterSelect.value = currentFilter;
+
     if (state.attendance.length === 0) {
       container.innerHTML = '<p class="empty-state">No attendance data available yet.</p>';
       return;
+    }
+
+    // Filter attendance records by selected course/section
+    const selectedClass = filterSelect.value;
+    let filteredAttendance = state.attendance;
+    if (selectedClass !== 'all') {
+      const studentIds = state.students.filter(s => s.class === selectedClass).map(s => s.id);
+      filteredAttendance = state.attendance.filter(r => studentIds.includes(r.studentId));
     }
 
     // Build date range (last N days, including today)
@@ -394,19 +417,12 @@
       dates.push(d.toISOString().slice(0, 10));
     }
 
-    // Group attendance records by date
+    // Group filtered attendance records by date
     const recordsByDate = {};
-    state.attendance.forEach(r => {
+    filteredAttendance.forEach(r => {
       if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
       recordsByDate[r.date].push(r);
     });
-
-    const statusColors = {
-      present: 'present',
-      absent: 'absent',
-      late: 'late',
-      excused: 'excused',
-    };
 
     const statusLabels = {
       present: 'Present',

@@ -1023,6 +1023,15 @@ a { color: var(--primary); text-decoration: none; }
 /* ═══════════════════════════════════════════════
    ATTENDANCE TRENDS CHART
    ═══════════════════════════════════════════════ */
+.trends-filter {
+  margin-bottom: 12px;
+}
+
+.trends-filter .form-input {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
 .trend-period-selector {
   display: inline-flex;
   gap: 4px;
